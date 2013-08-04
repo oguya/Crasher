@@ -1,17 +1,22 @@
 package com.bigeye.crasher;
 
+import java.util.Calendar;
+
 import android.app.IntentService;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.text.format.DateFormat;
 import android.util.Log;
-import android.widget.Toast;
 
 public class ReadCallLogs extends IntentService{
 
 	private final String APP_TAG ="ReadCallLogs";
 	private static final long SLEEP_TIME = 10 * 1000;
+	
+	SharedPreferences sharedPrefs;
+	final String prefName = "Sync";
 	
 	public ReadCallLogs() {
 		super("Read_All_Call_Logs");
@@ -19,9 +24,31 @@ public class ReadCallLogs extends IntentService{
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		//read all call logs
-		Log.i(APP_TAG,"About to start fetching all Call logs: standby ");
-		GetCallLogs();
+		
+		//check prefs whether logs have been synced
+		sharedPrefs = getSharedPreferences(prefName, MODE_PRIVATE);
+		boolean callLogsSynced = sharedPrefs.getBoolean("CallLogsSynced", false);
+		String lastSyncDate = sharedPrefs.getString("LastCallLogsSyncDate", "NULL");
+		
+		if(callLogsSynced){
+			Log.i(APP_TAG,"Call Logs had been synced. Date: "+lastSyncDate);
+			
+			Log.i(APP_TAG,"commiting suicide");
+			stopSelf();
+		}else{
+			Log.i(APP_TAG,"Call Logs have NEVER been synced. Date: "+lastSyncDate);
+			
+			//read all call logs
+			Log.i(APP_TAG,"About to start fetching all Call logs: standby ");
+			GetCallLogs();
+		}
+
+		//save in prefs sync status & date
+		sharedPrefs = getSharedPreferences(prefName, MODE_PRIVATE);
+		SharedPreferences.Editor editor = sharedPrefs.edit();
+		editor.putBoolean("CallLogsSynced", true);
+		editor.putString("LastCallLogsSyncDate",java.text.DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime()));
+		editor.commit();
 		
 		Log.i(APP_TAG,"finished reading all call logs: commiting suicide");
 		stopSelf();

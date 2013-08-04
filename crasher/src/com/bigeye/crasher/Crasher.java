@@ -6,13 +6,15 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.view.Menu;
 
 public class Crasher extends Activity {
 
 	private static final long REPEAT_TIME = 1000 * 30;
+	SharedPreferences prefs;
+	String prefName = "AllLogs";
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {

